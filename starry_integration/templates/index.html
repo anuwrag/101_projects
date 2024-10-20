@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainwave-inspired App</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif; /* Use a Material Design font */
+            background-color: #f5f5f5; /* Light background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow for elevation */
+            padding: 24px; /* Increased padding */
+            width: 90%; /* Responsive width */
+            max-width: 600px;
+        }
+        .box {
+            background: #fafafa; /* Light background for boxes */
+            border-radius: 8px; /* Rounded corners */
+            padding: 16px; /* Padding inside boxes */
+            margin-bottom: 20px;
+            text-align: center; /* Center text and inline elements */
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for boxes */
+        }
+        h2 {
+            color: #333; /* Darker text color */
+            margin-top: 0;
+            margin-bottom: 16px; /* Space below heading */
+        }
+        .checkbox-group {
+            display: flex;
+            justify-content: center; /* Center the radio buttons */
+            margin-bottom: 16px; /* Space below the group */
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin: 0 10px; /* Space between radio buttons */
+        }
+        .custom-radio {
+            display: none; /* Hide the default radio button */
+        }
+        .custom-radio + span {
+            position: relative;
+            padding-left: 30px; /* Space for custom radio */
+            cursor: pointer;
+            color: #333; /* Text color */
+        }
+        .custom-radio + span:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px; /* Size of the custom radio */
+            height: 20px; /* Size of the custom radio */
+            border: 2px solid #6200ea; /* Border color */
+            border-radius: 50%; /* Make it circular */
+            background-color: white; /* Background color */
+            transition: background-color 0.3s, border-color 0.3s; /* Smooth transition */
+        }
+        .custom-radio:checked + span:before {
+            background-color: #6200ea; /* Background color when checked */
+            border-color: #6200ea; /* Border color when checked */
+        }
+        .custom-radio:checked + span {
+            color: #6200ea; /* Change text color when checked */
+        }
+        #fileUpload {
+            display: none; /* Hide the default file input */
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px; /* Slightly rounded corners */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        #animalImage {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border-radius: 8px; /* Rounded corners for images */
+            display: block; /* Ensure the image is treated as a block element */
+            margin-left: auto; /* Center the image */
+            margin-right: auto; /* Center the image */
+        }
+        /* Material UI Button Styles */
+        .material-button {
+            background-color: #6200ea; /* Primary color */
+            color: white; /* Text color */
+            border: none; /* Remove border */
+            border-radius: 4px; /* Rounded corners */
+            padding: 10px 20px; /* Padding */
+            font-size: 16px; /* Font size */
+            cursor: pointer; /* Pointer cursor */
+            transition: background-color 0.3s; /* Smooth transition */
+            margin-top: 10px; /* Space above button */
+            display: inline-block; /* Make it inline-block to fit content */
+            text-align: center; /* Center text */
+        }
+        .material-button:hover {
+            background-color: #3700b3; /* Darker shade on hover */
+        }
+        .material-button:focus {
+            outline: none; /* Remove outline on focus */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="box">
+            <h2>Select an Animal</h2>
+            <div class="checkbox-group">
+                <label>
+                    <input type="radio" name="animal" value="cat" class="custom-radio">
+                    <span>Cat</span>
+                </label>
+                <label>
+                    <input type="radio" name="animal" value="dog" class="custom-radio">
+                    <span>Dog</span>
+                </label>
+                <label>
+                    <input type="radio" name="animal" value="elephant" class="custom-radio">
+                    <span>Elephant</span>
+                </label>
+            </div>
+            <img id="animalImage" src="" alt="Animal Image" style="display: none;">
+        </div>
+        <div class="box">
+            <h2>Upload a File</h2>
+            <input type="file" id="fileUpload"> <!-- Hidden file input -->
+            <label for="fileUpload" class="material-button">Choose File</label> <!-- Styled label as button -->
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('input[name="animal"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    document.querySelectorAll('input[name="animal"]').forEach(cb => {
+                        if (cb !== this) cb.checked = false;
+                    });
+                    fetch(`/get_animal_image?animal=${this.value}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('animalImage').src = data.image_url;
+                            document.getElementById('animalImage').style.display = 'block';
+                        });
+                } else {
+                    document.getElementById('animalImage').style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('fileUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Change cursor to loading
+                document.body.style.cursor = 'wait';
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Reset cursor to default
+                    document.body.style.cursor = 'default';
+
+                    document.getElementById('result').innerHTML = `
+                        <p>File Name: ${data.name}</p>
+                        <p>File Size: ${data.size}</p>
+                        <p>File Type: ${data.type}</p>
+                        <p>Estimated Zip Size: ${data.estimated_zip_size} bytes</p>
+                    `;
+                })
+                .catch(error => {
+                    // Reset cursor to default in case of error
+                    document.body.style.cursor = 'default';
+                    console.error('Error uploading file:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
