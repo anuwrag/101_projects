@@ -365,26 +365,44 @@
             }
         }
 
+        function clearAllCanvases() {
+            // Clear main canvas
+            document.getElementById('preview-audio').style.display = 'none';
+            document.getElementById('preview-image').style.display = 'none';
+            document.getElementById('content').textContent = '';
+            
+            // Reset canvas headers to default
+            document.querySelector('#canvas2 h2').textContent = 'Preprocessing';
+            document.querySelector('#canvas3 h2').textContent = 'Augmentation 1';
+            document.querySelector('#canvas4 h2').textContent = 'Augmentation 2';
+            
+            // Clear result canvases
+            document.getElementById('preprocessed').innerHTML = '';
+            document.getElementById('augmentation1').innerHTML = '';
+            document.getElementById('augmentation2').innerHTML = '';
+        }
+
         function handleTextFile(file) {
+            clearAllCanvases();
             isImage = false;
             isObj = false;
+            isAudio = false;
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 currentText = e.target.result;
                 content.textContent = currentText;
                 document.getElementById('dropText').style.display = 'none';
-                document.getElementById('preview-image').style.display = 'none';
-                // Clear any existing 3D canvas
-                if (content.querySelector('canvas')) {
-                    content.querySelector('canvas').remove();
-                }
             };
             reader.readAsText(file);
         }
 
         function handleImageFile(file) {
+            clearAllCanvases();
             isImage = true;
             isObj = false;
+            isAudio = false;
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 currentImage = e.target.result;
@@ -392,32 +410,27 @@
                 previewImage.src = currentImage;
                 previewImage.style.display = 'block';
                 document.getElementById('dropText').style.display = 'none';
-                content.textContent = '';
-                // Clear any existing 3D canvas
-                if (content.querySelector('canvas')) {
-                    content.querySelector('canvas').remove();
-                }
             };
             reader.readAsDataURL(file);
         }
 
         function handleObjFile(file) {
+            clearAllCanvases();
             isImage = false;
             isObj = true;
+            isAudio = false;
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 currentObj = e.target.result;
                 document.getElementById('dropText').style.display = 'none';
-                document.getElementById('preview-image').style.display = 'none';
-                content.textContent = '';
-                
-                // Initialize 3D viewer in main canvas
                 initializeObjViewer('content', e.target.result);
             };
             reader.readAsText(file);
         }
 
         function handleAudioFile(file) {
+            clearAllCanvases();
             isImage = false;
             isObj = false;
             isAudio = true;
@@ -429,10 +442,6 @@
                 audioElement.src = currentAudio;
                 audioElement.style.display = 'block';
                 document.getElementById('dropText').style.display = 'none';
-                document.getElementById('preview-image').style.display = 'none';
-                content.textContent = '';
-                
-                // Add loading indicator
                 content.innerHTML = '<p>Audio file loaded. Click process to analyze.</p>';
             };
             reader.readAsDataURL(file);
@@ -447,6 +456,7 @@
 
             try {
                 const formData = new FormData();
+                
                 if (isImage) {
                     formData.append('image', currentImage);
                     formData.append('type', 'image');
@@ -472,6 +482,9 @@
 
                 const data = await response.json();
                 document.body.classList.add('processed');
+                
+                // Clear previous results before displaying new ones
+                clearAllCanvases();
                 
                 if (isImage) {
                     displayImageResults(data);

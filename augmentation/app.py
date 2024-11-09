@@ -158,7 +158,7 @@ def process_obj(obj_content):
     rotated_vertices = centered_vertices @ rotation_matrix
     
     # Scale the object
-    scale_factor = np.random.uniform(0.5, 2.0)
+    scale_factor = np.random.uniform(4.5, 20.0)
     scaled_vertices = centered_vertices * scale_factor
     
     # Convert back to OBJ format
