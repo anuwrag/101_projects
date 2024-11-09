@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Processing App</title>
+    <style>
+        :root {
+            --color-1: #22577a;
+            --color-2: #38a3a5;
+            --color-3: #57cc99;
+            --color-4: #80ed99;
+            --color-5: #c7f9cc;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: var(--color-5);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            transition: all 0.5s ease;
+        }
+
+        .canvas {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .canvas h2 {
+            color: var(--color-1);
+            margin-top: 0;
+        }
+
+        #mainCanvas {
+            border: 3px dashed var(--color-2);
+        }
+
+        .canvas.result {
+            display: none;
+            background-color: white;
+        }
+
+        #processBtn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: var(--color-3);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #processBtn:hover {
+            background-color: var(--color-2);
+        }
+
+        .token {
+            display: inline-block;
+            margin: 2px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            background-color: var(--color-4);
+        }
+
+        .inserted {
+            background-color: var(--color-3);
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: white;
+        }
+
+        .replaced {
+            background-color: var(--color-2);
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: white;
+        }
+
+        #dropText {
+            text-align: center;
+            color: var(--color-2);
+            margin-top: 100px;
+        }
+
+        .processed .container {
+            transform: translateX(-33%);
+        }
+
+        .processed .canvas.result {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="mainCanvas" class="canvas">
+            <h2>Drop Files or Text</h2>
+            <p id="dropText">Drag and drop files here or click to select</p>
+            <div id="content"></div>
+        </div>
+        
+        <div id="canvas2" class="canvas result">
+            <h2>Preprocessed</h2>
+            <div id="preprocessed"></div>
+        </div>
+        
+        <div id="canvas3" class="canvas result">
+            <h2>Augmentation: Random Insertion</h2>
+            <div id="augmentation1"></div>
+        </div>
+        
+        <div id="canvas4" class="canvas result">
+            <h2>Augmentation: Synonym Replacement</h2>
+            <div id="augmentation2"></div>
+        </div>
+    </div>
+    
+    <button id="processBtn">Process</button>
+
+    <script>
+        const mainCanvas = document.getElementById('mainCanvas');
+        const content = document.getElementById('content');
+        const processBtn = document.getElementById('processBtn');
+        let currentText = '';
+
+        // Drag and drop handling
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            mainCanvas.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        mainCanvas.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files.length) {
+                const file = files[0];
+                if (file.type.startsWith('text/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        currentText = e.target.result;
+                        content.textContent = currentText;
+                        document.getElementById('dropText').style.display = 'none';
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert('Please drop a text file');
+                }
+            }
+        }
+
+        // Process button handling
+        processBtn.addEventListener('click', async () => {
+            if (!currentText) {
+                alert('Please drop a text file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('text_content', currentText);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                document.getElementById('preprocessed').innerHTML = 
+                    `<h3>Preprocessed: ${data.token_count} tokens</h3>` +
+                    data.tokens.join(' ');
+                
+                document.getElementById('augmentation1').innerHTML = data.augmented_text1;
+                document.getElementById('augmentation2').innerHTML = data.augmented_text2;
+                
+                document.body.classList.add('processed');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during processing');
+            }
+        });
+
+        // Allow clicking to select file
+        mainCanvas.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentText = e.target.result;
+                    content.textContent = currentText;
+                    document.getElementById('dropText').style.display = 'none';
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        });
+    </script>
+</body>
+</html>
