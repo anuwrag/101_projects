@@ -66,7 +66,9 @@ def home():
 
 @app.route('/process', methods=['POST'])
 def process():
+    print("Received process request")
     if 'text' not in request.files and 'text_content' not in request.form:
+        print("No text provided")
         return jsonify({'error': 'No text provided'})
     
     if 'text_content' in request.form:
