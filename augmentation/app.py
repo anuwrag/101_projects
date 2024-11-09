@@ -11,6 +11,17 @@ import nltk
 import random
 import os
 from pathlib import Path
+import torchaudio
+import torch
+import librosa
+import librosa.display
+import soundfile as sf
+import numpy as np
+from scipy.io import wavfile
+import matplotlib
+matplotlib.use('Agg')  # Use Agg backend to avoid GUI issues
+import matplotlib.pyplot as plt
+from scipy import signal
 
 # Download required NLTK data
 nltk.download('wordnet')
@@ -166,24 +177,100 @@ def process_obj(obj_content):
         'scaled_obj': vertices_to_obj(scaled_vertices, faces)
     }
 
+def process_audio(audio_data):
+    try:
+        # Convert base64 to audio
+        audio_data = audio_data.split(',')[1]
+        audio_bytes = base64.b64decode(audio_data)
+        
+        # Save temporarily
+        temp_path = 'temp_audio.wav'
+        with open(temp_path, 'wb') as f:
+            f.write(audio_bytes)
+        
+        # Load and resample audio
+        y, sr = librosa.load(temp_path, sr=16000)
+        
+        # Compute MFCC
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+        
+        # Create MFCC plot
+        plt.figure(figsize=(10, 4))
+        librosa.display.specshow(mfcc, x_axis='time', sr=sr)
+        plt.colorbar(format='%+2.0f dB')
+        plt.title('MFCC')
+        
+        # Save plot to base64
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        mfcc_plot = base64.b64encode(buf.getvalue()).decode()
+        plt.close()
+        
+        # Pitch shifting
+        def pitch_shift(audio, steps):
+            return librosa.effects.pitch_shift(audio, sr=sr, n_steps=steps)
+        
+        high_pitch = pitch_shift(y, 4)  # Shift up by 4 semitones
+        low_pitch = pitch_shift(y, -4)  # Shift down by 4 semitones
+        
+        # Add background noise (simulated car honk sound)
+        t = np.linspace(0, len(y)/sr, len(y))
+        honk_freq = 400  # Frequency for car honk sound
+        noise = 0.1 * np.sin(2 * np.pi * honk_freq * t)
+        noisy = y + noise
+        
+        # Function to convert audio to base64
+        def audio_to_base64(audio_data):
+            buf = io.BytesIO()
+            sf.write(buf, audio_data, sr, format='wav')
+            buf.seek(0)
+            return f'data:audio/wav;base64,{base64.b64encode(buf.getvalue()).decode()}'
+        
+        # Clean up
+        os.remove(temp_path)
+        
+        return {
+            'type': 'audio',
+            'sample_rate': sr,
+            'mfcc_plot': f'data:image/png;base64,{mfcc_plot}',
+            'resampled_audio': audio_to_base64(y),
+            'high_pitch_audio': audio_to_base64(high_pitch),
+            'low_pitch_audio': audio_to_base64(low_pitch),
+            'noisy_audio': audio_to_base64(noisy)
+        }
+        
+    except Exception as e:
+        print(f"Error processing audio: {str(e)}")
+        return {'error': str(e)}
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/process', methods=['POST'])
 def process():
-    request_type = request.form.get('type')
-    
-    if request_type == 'obj':
-        if 'obj' not in request.form:
-            return jsonify({'error': 'No OBJ file provided'})
-        return jsonify(process_obj(request.form['obj']))
-    elif request_type == 'image':
-        return jsonify(process_image(request.form['image']))
-    elif request_type == 'text':
-        return jsonify(process_text(request.form['text_content']))
-    
-    return jsonify({'error': 'Invalid request type'})
+    try:
+        request_type = request.form.get('type')
+        
+        if request_type == 'audio':
+            if 'audio' not in request.form:
+                return jsonify({'error': 'No audio file provided'})
+            return jsonify(process_audio(request.form['audio']))
+        elif request_type == 'obj':
+            if 'obj' not in request.form:
+                return jsonify({'error': 'No OBJ file provided'})
+            return jsonify(process_obj(request.form['obj']))
+        elif request_type == 'image':
+            return jsonify(process_image(request.form['image']))
+        elif request_type == 'text':
+            return jsonify(process_text(request.form['text_content']))
+        
+        return jsonify({'error': 'Invalid request type'})
+        
+    except Exception as e:
+        print(f"Error in process route: {str(e)}")
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)

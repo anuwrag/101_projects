@@ -241,18 +241,60 @@
         .canvas.result {
             min-height: 450px;  /* Increased height for better 3D viewing */
         }
+
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .canvas.result audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .canvas.result img.result-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .audio-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .audio-container div {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        audio {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .result-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/torchaudio-js"></script>
 </head>
 <body>
     <h1 style="color: white; margin-bottom: 20px;">Data Augmentation Visualizer</h1>
     <div class="container">
         <div id="mainCanvas" class="canvas">
-            <h2>Drop Files (Text or Image)</h2>
+            <h2>Drop Files (Text, Image, OBJ, or Audio)</h2>
             <p id="dropText">Drag and drop files here or click to select</p>
             <img id="preview-image" alt="Preview" style="display: none;">
+            <audio id="preview-audio" controls style="display: none;"></audio>
             <div id="content"></div>
         </div>
     </div>
@@ -288,6 +330,8 @@
         let currentObj = null;
         let isImage = false;
         let isObj = false;
+        let currentAudio = null;
+        let isAudio = false;
 
         // Drag and drop handling
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -313,8 +357,10 @@
                     handleImageFile(file);
                 } else if (file.name.endsWith('.obj')) {
                     handleObjFile(file);
+                } else if (file.name.endsWith('.wav')) {
+                    handleAudioFile(file);
                 } else {
-                    alert('Please drop a text, image, or .obj file');
+                    alert('Please drop a text, image, .obj, or .wav file');
                 }
             }
         }
@@ -371,9 +417,30 @@
             reader.readAsText(file);
         }
 
+        function handleAudioFile(file) {
+            isImage = false;
+            isObj = false;
+            isAudio = true;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentAudio = e.target.result;
+                const audioElement = document.getElementById('preview-audio');
+                audioElement.src = currentAudio;
+                audioElement.style.display = 'block';
+                document.getElementById('dropText').style.display = 'none';
+                document.getElementById('preview-image').style.display = 'none';
+                content.textContent = '';
+                
+                // Add loading indicator
+                content.innerHTML = '<p>Audio file loaded. Click process to analyze.</p>';
+            };
+            reader.readAsDataURL(file);
+        }
+
         // Process button handling
         processBtn.addEventListener('click', async () => {
-            if (!currentText && !currentImage && !currentObj) {
+            if (!currentText && !currentImage && !currentObj && !currentAudio) {
                 alert('Please drop a file first');
                 return;
             }
@@ -386,6 +453,9 @@
                 } else if (isObj) {
                     formData.append('obj', currentObj);
                     formData.append('type', 'obj');
+                } else if (isAudio) {
+                    formData.append('audio', currentAudio);
+                    formData.append('type', 'audio');
                 } else {
                     formData.append('text_content', currentText);
                     formData.append('type', 'text');
@@ -407,6 +477,8 @@
                     displayImageResults(data);
                 } else if (isObj) {
                     displayObjResults(data);
+                } else if (isAudio) {
+                    displayAudioResults(data);
                 } else {
                     displayTextResults(data);
                 }
@@ -457,11 +529,51 @@
             initializeObjViewer('augmentation2', data.scaled_obj);
         }
 
+        function displayAudioResults(data) {
+            if (data.error) {
+                alert('Error processing audio: ' + data.error);
+                return;
+            }
+
+            // Update headers
+            document.querySelector('#canvas2 h2').textContent = 'Preprocessing: Resampled Audio & MFCC';
+            document.querySelector('#canvas3 h2').textContent = 'Augmentation: Pitch Shifting';
+            document.querySelector('#canvas4 h2').textContent = 'Augmentation: Background Noise';
+
+            // Canvas 2: Preprocessing
+            document.getElementById('preprocessed').innerHTML = `
+                <h3>Resampled to ${data.sample_rate}Hz</h3>
+                <img src="${data.mfcc_plot}" class="result-image" alt="MFCC Plot">
+                <audio controls src="${data.resampled_audio}"></audio>
+            `;
+
+            // Canvas 3: Pitch Shifting
+            document.getElementById('augmentation1').innerHTML = `
+                <h3>High & Low Pitch Variations</h3>
+                <div class="audio-container">
+                    <div>
+                        <p>High Pitch:</p>
+                        <audio controls src="${data.high_pitch_audio}"></audio>
+                    </div>
+                    <div>
+                        <p>Low Pitch:</p>
+                        <audio controls src="${data.low_pitch_audio}"></audio>
+                    </div>
+                </div>
+            `;
+
+            // Canvas 4: Background Noise
+            document.getElementById('augmentation2').innerHTML = `
+                <h3>Added Background Noise</h3>
+                <audio controls src="${data.noisy_audio}"></audio>
+            `;
+        }
+
         // Allow clicking to select file
         mainCanvas.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.txt,.png,.jpg,.jpeg,.gif,.obj';
+            input.accept = '.txt,.png,.jpg,.jpeg,.gif,.obj,.mp3,.wav';
             
             input.onchange = e => {
                 const file = e.target.files[0];
@@ -471,8 +583,10 @@
                     handleImageFile(file);
                 } else if (file.name.endsWith('.obj')) {
                     handleObjFile(file);
+                } else if (file.type.startsWith('audio/')) {
+                    handleAudioFile(file);
                 } else {
-                    alert('Please select a valid file (text, image, or .obj)');
+                    alert('Please select a valid file (text, image, obj, or audio)');
                 }
             };
             
