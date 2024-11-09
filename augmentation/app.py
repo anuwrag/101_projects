@@ -10,6 +10,7 @@ from nltk.corpus import wordnet
 import nltk
 import random
 import os
+from pathlib import Path
 
 # Download required NLTK data
 nltk.download('wordnet')
@@ -120,28 +121,66 @@ def process_image(image_data):
         'norm_std': normalized_tensor.std().item()
     }
 
+def process_obj(obj_content):
+    # Parse OBJ content
+    vertices = []
+    faces = []
+    for line in obj_content.split('\n'):
+        if line.startswith('v '):
+            vertices.append([float(x) for x in line[2:].split()])
+        elif line.startswith('f '):
+            faces.append([int(x.split('/')[0]) for x in line[2:].split()])
+    
+    vertices = np.array(vertices)
+    
+    # Center the object
+    center = vertices.mean(axis=0)
+    centered_vertices = vertices - center
+    
+    # Random rotation
+    angle = np.random.uniform(0, 2 * np.pi)
+    rotation_matrix = np.array([
+        [np.cos(angle), -np.sin(angle), 0],
+        [np.sin(angle), np.cos(angle), 0],
+        [0, 0, 1]
+    ])
+    rotated_vertices = centered_vertices @ rotation_matrix
+    
+    # Scale the object
+    scale_factor = np.random.uniform(0.5, 2.0)
+    scaled_vertices = centered_vertices * scale_factor
+    
+    # Convert back to OBJ format
+    def vertices_to_obj(verts, orig_faces):
+        obj_lines = []
+        for v in verts:
+            obj_lines.append(f'v {v[0]} {v[1]} {v[2]}')
+        for f in faces:
+            obj_lines.append(f'f {" ".join(map(str, f))}')
+        return '\n'.join(obj_lines)
+    
+    return {
+        'type': 'obj',
+        'centered_obj': vertices_to_obj(centered_vertices, faces),
+        'rotated_obj': vertices_to_obj(rotated_vertices, faces),
+        'scaled_obj': vertices_to_obj(scaled_vertices, faces)
+    }
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/process', methods=['POST'])
 def process():
-    print("Received process request")
+    request_type = request.form.get('type')
     
-    # Check request type
-    if 'type' not in request.form:
-        return jsonify({'error': 'Request type not specified'})
-    
-    request_type = request.form['type']
-    
-    if request_type == 'image':
-        if 'image' not in request.form:
-            return jsonify({'error': 'No image provided'})
+    if request_type == 'obj':
+        if 'obj' not in request.form:
+            return jsonify({'error': 'No OBJ file provided'})
+        return jsonify(process_obj(request.form['obj']))
+    elif request_type == 'image':
         return jsonify(process_image(request.form['image']))
-    
     elif request_type == 'text':
-        if 'text_content' not in request.form:
-            return jsonify({'error': 'No text provided'})
         return jsonify(process_text(request.form['text_content']))
     
     return jsonify({'error': 'Invalid request type'})
