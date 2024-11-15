@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neural Network Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Left Panel -->
+        <div class="parameters-panel">
+            <h1> Neural Network Visualizer </h1>    
+            <h2>Model Parameters</h2>
+            <form id="training-form">
+                <div class="form-group">
+                    <label>Model Type:</label>
+                    <select id="modelType" name="modelType">
+                        <option value="snn">Simple Neural Network</option>
+                        <option value="cnn">Convolutional Neural Network</option>
+                    </select>
+                </div>
+
+                <div id="cnn-options" style="display: none;">
+                    <div class="form-group">
+                        <label>Kernels (comma-separated):</label>
+                        <input type="text" id="kernels1" name="kernels1" value="16,32,64" placeholder="e.g., 16,32,64">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Optimizer:</label>
+                    <select id="optimizer" name="optimizer">
+                        <option value="adam">Adam</option>
+                        <option value="sgd">SGD</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Batch Size:</label>
+                    <input type="number" id="batchSize" name="batchSize" value="10" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Epochs:</label>
+                    <input type="number" id="epochs" name="epochs" value="5" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Dataset:</label>
+                    <select id="dataset" name="dataset">
+                        <option value="mnist">MNIST</option>
+                        <option value="fashionmnist">Fashion MNIST</option>
+                        <option value="cifar10">CIFAR10</option>
+                        <option value="flowers102">Flowers102</option>
+                    </select>
+                </div>
+
+                <button type="submit">Process</button>
+            </form>
+            
+            <div class="logs-container">
+                <h3>Logs</h3>
+                <div id="logs"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Current Processing Section -->
+            <div class="processing-panel">
+                <h3>Current Processing</h3>
+                <div class="image-preview">
+                    <img id="current-image" src="" alt="Processing image">
+                    <div id="prediction-text"></div>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-panel">
+                <h3>Training Progress</h3>
+                <div class="progress-item">
+                    <div class="progress-labels">
+                        <span id="epoch-text">Epoch: 0/0</span>
+                        <span id="batch-text">Batch: 0/0</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="overall-progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph Section -->
+            <div class="graphs-panel">
+                <div class="graph-container">
+                    <canvas id="trainingChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 
