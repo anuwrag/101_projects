@@ -31,7 +31,7 @@ def test_model_accuracy():
     
     # Load training data
     train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     
     # Training setup
     criterion = torch.nn.CrossEntropyLoss()
