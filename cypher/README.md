@@ -2,7 +2,8 @@
 
 A Flask application demonstrating MNIST digit recognition using PyTorch.
 
-![Model Benchmarks](https://github.com/{username}/{repository}/workflows/Model%20Benchmarks/badge.svg)
+![Model Benchmarks](https://github.com/anuwrag/101_projects/workflows/Model%20Benchmarks/badge.svg)
+![Build Status](https://github.com/anuwrag/101_projects/workflows/Build/badge.svg)
 
 ## Features
 
