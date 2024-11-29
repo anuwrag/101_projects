@@ -30,5 +30,6 @@ Total Parameters: 5,258
 
 ## Setup
 
-1. Clone the repository:
-
+1. Clone the repository
+2. Install the dependencies
+3. Run `python app.py`
