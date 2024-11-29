@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./cypher
     
     steps:
     - uses: actions/checkout@v2
@@ -25,4 +28,4 @@ jobs:
         
     - name: Verify installation
       run: |
-        python -c "import torch; import flask; print('Dependencies verified')" 
+        python -c "import torch; import flask; print('Dependencies verified')"
