@@ -37,10 +37,10 @@ def test_model_with_augmentation():
     
     # Load training data with augmentation
     train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     
     # Train for one epoch with augmented data
     model.train()
