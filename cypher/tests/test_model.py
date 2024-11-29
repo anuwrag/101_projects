@@ -35,7 +35,7 @@ def test_model_accuracy():
     
     # Training setup
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.02)
     
     # Train for one epoch
     model.train()
