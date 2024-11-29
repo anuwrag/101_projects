@@ -2,13 +2,20 @@ name: Model Benchmarks
 
 on:
   push:
+    paths:
+      - 'cypher/**'
     branches: [ main ]
   pull_request:
+    paths:
+      - 'cypher/**'
     branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./cypher
     
     steps:
     - uses: actions/checkout@v2

@@ -12,7 +12,7 @@ class MNISTModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2)  # 5x5x16
         )
-        self.classifier = nn.Linear(5 * 5 * 16, 20)
+        self.classifier = nn.Linear(5 * 5 * 16, 50)
 
     def forward(self, x):
         x = self.features(x)

@@ -61,7 +61,6 @@ function addLog(epoch, batch, loss, accuracy) {
     logEntry.className = 'log-entry';
     logEntry.innerHTML = `Epoch ${epoch}, Batch ${batch}: Loss = ${loss.toFixed(4)}, Accuracy = ${accuracy.toFixed(2)}%`;
     
-    // Alternate background colors for better readability
     if (logsDiv.children.length % 2 === 0) {
         logEntry.style.backgroundColor = '#f8f9fa';
     }
@@ -70,23 +69,47 @@ function addLog(epoch, batch, loss, accuracy) {
     logsDiv.scrollTop = logsDiv.scrollHeight;
 }
 
-function clearLogs() {
-    logsDiv.innerHTML = '';
-}
-
 function startTraining() {
-    document.getElementById('startTraining').disabled = true;
-    clearLogs();
+    const button = document.getElementById('startTraining');
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Training...';
+
+    // Clear previous data
+    chart.data.labels = [];
+    chart.data.datasets[0].data = [];
+    chart.data.datasets[1].data = [];
+    chart.update();
     
+    if (logsDiv) {
+        logsDiv.innerHTML = '';
+    }
+
     fetch('/train')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             updateChart(data);
-            document.getElementById('startTraining').disabled = false;
+            button.disabled = false;
+            button.innerHTML = 'Start Training';
+        })
+        .catch(error => {
+            console.error('Error during training:', error);
+            button.disabled = false;
+            button.innerHTML = 'Start Training';
+            alert('An error occurred during training. Please check the console for details.');
         });
 }
 
 function updateChart(data) {
+    if (!data || data.length === 0) {
+        console.error('No data received from training');
+        return;
+    }
+
     const labels = data.map(item => `Epoch ${item.epoch}, Batch ${item.batch}`);
     const losses = data.map(item => item.loss);
     const accuracies = data.map(item => item.accuracy);
